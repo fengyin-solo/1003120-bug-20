@@ -17,6 +17,7 @@ const Rescue = () => import('@/views/rescue/index.vue')
 const Training = () => import('@/views/training/index.vue')
 const Shift = () => import('@/views/shift/index.vue')
 const Explosive = () => import('@/views/explosive/index.vue')
+const Inspection = () => import('@/views/inspection/index.vue')
 const Roadway = () => import('@/views/roadway/index.vue')
 const Monitorstation = () => import('@/views/monitorstation/index.vue')
 const Certificate = () => import('@/views/certificate/index.vue')
@@ -42,6 +43,7 @@ const router = createRouter({
     { path: '/training', name: 'training', component: Training },
     { path: '/shift', name: 'shift', component: Shift },
     { path: '/explosive', name: 'explosive', component: Explosive },
+    { path: '/inspection', name: 'inspection', component: Inspection },
     { path: '/roadway', name: 'roadway', component: Roadway },
     { path: '/monitorstation', name: 'monitorstation', component: Monitorstation },
     { path: '/certificate', name: 'certificate', component: Certificate },
