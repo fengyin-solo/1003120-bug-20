@@ -1,4 +1,8 @@
-"""爆破管理接口：维护爆破记录，覆盖提交审批、执行爆破、爆后检查等动作。"""
+"""爆破管理接口：维护爆破记录，覆盖提交审批、执行爆破、爆后检查等动作。
+
+状态只能按 待审批 → 已审批 → 已爆破 → 已检查 顺序推进；
+跳级、倒序、缺审批结论、重复提交都会被服务层拦下并在回执里写明原因。
+"""
 from __future__ import annotations
 
 from typing import Any
@@ -30,9 +34,19 @@ def list_entries(
     return PageResult(items=items, total=total, page=page, size=size)
 
 
+@router.get("/export")
+def export_entries() -> dict[str, Any]:
+    """导出爆破管理清单：返回当前全量数据（含状态留痕）。
+
+    注意：/export 必须排在 /{entry_id} 之前注册，否则会被当成单条明细路径。
+    """
+    items, total = service.list_entries(page=1, size=10000)
+    return {"module": "explosive", "total": total, "items": items}
+
+
 @router.get("/{entry_id}", response_model=dict)
 def get_entry(entry_id: int) -> dict:
-    """读取单条爆破记录明细；不存在时给出可读的错误说明。"""
+    """读取单条爆破记录明细（含状态留痕）；不存在时给出可读的错误说明。"""
     entry = service.get_entry(entry_id)
     if entry is None:
         raise HTTPException(status_code=404, detail=f"爆破记录 {entry_id} 不存在或已归档")
@@ -50,16 +64,15 @@ def create_entry(payload: EntryPayload) -> ActionResult:
 
 @router.post("/{entry_id}/actions", response_model=ActionResult)
 def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
-    """对单条爆破记录执行提交审批、执行爆破、爆后检查；不允许的动作会被拦下并说明原因。"""
-    action = str(payload.values.get("action") or "").strip()
-    entry, message = service.run_action(entry_id, action)
+    """推进爆破审批链；非法流转（跳级/倒序/重复/缺结论）返回 ok=False 并写明原因。"""
+    values = payload.values
+    action = str(values.get("action") or "").strip()
+    operator = str(values.get("operator") or "值班管理员").strip()
+    conclusion = str(values.get("conclusion") or payload.remark or "").strip()
+    note = str(values.get("note") or "").strip()
+    entry, message = service.run_action(
+        entry_id, action, operator=operator, conclusion=conclusion, note=note
+    )
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
-
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出爆破管理清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "explosive", "total": total, "items": items}

@@ -14,6 +14,8 @@ class Store:
         self._tables: dict[str, list[dict[str, Any]]] = {
             name: [dict(row) for row in rows] for name, rows in SEED_ROWS.items()
         }
+        # 安全检查台账表：爆破链安全确认待办与存量跳级复核挂账都收在这里
+        self._tables.setdefault("safety_ledger", [])
 
     def module_names(self) -> list[str]:
         return sorted(self._tables)
@@ -29,7 +31,10 @@ class Store:
 
     def overview(self) -> dict[str, object]:
         modules: list[dict[str, object]] = []
+        # 安全检查台账是横向待办表，不计入业务模块指标，由台账页单独展示
         for name in self.module_names():
+            if name == "safety_ledger":
+                continue
             rows = self.rows(name)
             modules.append({
                 "name": name,

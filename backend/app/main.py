@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import ROUTERS
+from app.services.explosive import ExplosiveService
 from app.store import store
 
 app = FastAPI(title="矿山安全监测管理平台", version="1.0.0")
@@ -24,6 +25,9 @@ app.add_middleware(
 
 for module in ROUTERS:
     app.include_router(module.router)
+
+# 存量历史记录：按当时人工签字补登留痕，已跳级的挂安全检查台账等人工复核
+ExplosiveService().backfill_legacy()
 
 
 @app.get("/api/health")
